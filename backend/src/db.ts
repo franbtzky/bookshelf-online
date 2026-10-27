@@ -1,3 +1,4 @@
+
 import "dotenv/config";
 import mysql from "mysql2/promise";
 
@@ -19,12 +20,29 @@ if (!process.env.DB_NAME) {
   throw new Error("Configure DB_NAME no arquivo .env.");
 }
 
+const useSSL = process.env.DB_SSL === "true";
+
+if (useSSL && !process.env.DB_SSL_CA) {
+  throw new Error(
+    "Configure DB_SSL_CA com o certificado CA da Aiven."
+  );
+}
+
 export const pool = mysql.createPool({
   host: process.env.DB_HOST || "localhost",
   port: databasePort,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD ?? "",
   database: process.env.DB_NAME,
+
+  ...(useSSL
+    ? {
+        ssl: {
+          ca: process.env.DB_SSL_CA!.replace(/\\n/g, "\n"),
+          rejectUnauthorized: true,
+        },
+      }
+    : {}),
 
   waitForConnections: true,
   connectionLimit: 10,
